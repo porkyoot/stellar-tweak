@@ -67,6 +67,7 @@ Stellartweak is engineered strictly for client instances (`ClientModInitializer`
 * **Dependencies:**
   * **Stellarcore:** Bundled internally via Gradle Fat Jar.
   * **Stellarlaw:** Soft/optional integration (`compileOnly` & `"optional": true` in `quilt.mod.json`). Ensures automatic compliance with server policies and unlocks restricted features on permitted servers.
+  * **Mod Menu:** Soft/recommended dependency (`compileOnly` & `"optional": true` in `quilt.mod.json`). Recommended for configuring client tweaks, keybinds, and feature toggles in-game.
 
 ---
 

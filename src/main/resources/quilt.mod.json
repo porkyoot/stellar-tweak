@@ -20,6 +20,11 @@
         "id": "stellar_law",
         "versions": "*",
         "optional": true
+      },
+      {
+        "id": "modmenu",
+        "versions": "*",
+        "optional": true
       }
     ]
   }
