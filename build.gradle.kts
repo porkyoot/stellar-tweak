@@ -1,7 +1,7 @@
 dependencies {
     implementation(project(":stellar-core"))
-    compileOnly(project(":stellar-law"))
-    compileOnly("com.terraformersmc:modmenu:${project.property("modmenu_version")}")
+    compileOnly("com.terraformersmc:modmenu:11.0.3-local")
+    compileOnly("me.shedaniel.cloth:cloth-config-fabric:15.0.140-local")
 }
 
 tasks.named<Jar>("jar") {

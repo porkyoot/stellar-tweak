@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "com.stellar.tweak.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "KeyboardHandlerMixin",
+    "KeyMappingAccessor",
+    "MouseHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

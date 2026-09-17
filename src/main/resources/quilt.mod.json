@@ -9,10 +9,15 @@
       "description": "Various tweaks and modifications",
       "icon": "assets/stellar_tweak/icon.png"
     },
+    "intermediate_mappings": "net.fabricmc:intermediary",
     "entrypoints": {
       "client": {
         "adapter": "kotlin",
         "value": "com.stellar.tweak.StellarTweakMod"
+      },
+      "modmenu": {
+        "adapter": "kotlin",
+        "value": "com.stellar.tweak.config.StellarTweakModMenu"
       }
     },
     "depends": [
@@ -27,5 +32,6 @@
         "optional": true
       }
     ]
-  }
+  },
+  "mixin": "stellar_tweak.mixins.json"
 }
