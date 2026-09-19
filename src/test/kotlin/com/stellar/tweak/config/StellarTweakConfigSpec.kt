@@ -6,6 +6,8 @@ import com.stellar.core.input.GameAction
 import com.stellar.core.input.GameActionKeyResolver
 import com.stellar.core.input.Key
 import com.stellar.core.input.Modifier
+import com.stellar.core.input.ModifierMatch
+import com.stellar.core.input.registerKey
 import com.stellar.tweak.input.StellarTweakInputBridge
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -29,11 +31,17 @@ class StellarTweakConfigSpec : FunSpec({
         config.toastKey.value() shouldBe Key.KEY_H
     }
 
-    test("StellarTweakInputBridge action bindings handle crouch and sprint key pressed") {
+    test("StellarTweakInputBridge passes unhandled keys and handles registered feature bindings") {
         StellarTweakInputBridge.initialize()
-        val manager = StellarTweakInputBridge.inputManager
+        val bridge = StellarTweakInputBridge
+        val manager = bridge.inputManager
 
-        // Set action resolver to map Crouch -> C, Sprint -> R
+        // By default with no test interceptors, keys and mouse events pass through
+        bridge.onKey(Key.KEY_C, GLFW.GLFW_PRESS, 0) shouldBe EventResult.PASS
+        bridge.onMouseButton(GLFW.GLFW_MOUSE_BUTTON_1, GLFW.GLFW_PRESS, 0) shouldBe EventResult.PASS
+        bridge.onMouseScroll(0.0, 1.0) shouldBe EventResult.PASS
+
+        // Configure action resolver
         manager.actionResolver = GameActionKeyResolver { action ->
             when (action) {
                 GameAction.CROUCH -> Key.KEY_C
@@ -42,28 +50,31 @@ class StellarTweakConfigSpec : FunSpec({
             }
         }
 
+        // Register a feature binding
+        manager.registerKey("stellar_tweak:test_crouch_feature") {
+            gameAction(GameAction.CROUCH)
+            modifiers(Modifier.CTRL)
+            match = ModifierMatch.EXACT
+            onPress { EventResult.CONSUMED }
+        }
+
         // Press Ctrl
-        manager.onKey(Key.KEY_LEFT_CONTROL, GLFW.GLFW_PRESS, GLFW.GLFW_MOD_CONTROL)
+        bridge.onKey(Key.KEY_LEFT_CONTROL, GLFW.GLFW_PRESS, GLFW.GLFW_MOD_CONTROL)
         manager.stateTracker.activeModifiers.contains(Modifier.CTRL) shouldBe true
 
-        // Press C (Crouch key pressed while Ctrl is down) -> should consume crouch_action_test
-        val crouchResult = manager.onKey(Key.KEY_C, GLFW.GLFW_PRESS, GLFW.GLFW_MOD_CONTROL)
+        // Press C (Crouch key pressed while Ctrl is down) -> should consume feature binding
+        val crouchResult = bridge.onKey(Key.KEY_C, GLFW.GLFW_PRESS, GLFW.GLFW_MOD_CONTROL)
         crouchResult shouldBe EventResult.CONSUMED
 
         // Release C
-        manager.onKey(Key.KEY_C, GLFW.GLFW_RELEASE, GLFW.GLFW_MOD_CONTROL)
+        bridge.onKey(Key.KEY_C, GLFW.GLFW_RELEASE, GLFW.GLFW_MOD_CONTROL)
 
-        // Press R (Sprint key pressed while Ctrl is down) -> should consume sprint_action_test
-        val sprintResult = manager.onKey(Key.KEY_R, GLFW.GLFW_PRESS, GLFW.GLFW_MOD_CONTROL)
-        sprintResult shouldBe EventResult.CONSUMED
-
-        // Release R and Ctrl
-        manager.onKey(Key.KEY_R, GLFW.GLFW_RELEASE, GLFW.GLFW_MOD_CONTROL)
-        manager.onKey(Key.KEY_LEFT_CONTROL, GLFW.GLFW_RELEASE, 0)
+        // Release Ctrl
+        bridge.onKey(Key.KEY_LEFT_CONTROL, GLFW.GLFW_RELEASE, 0)
         manager.stateTracker.activeModifiers.contains(Modifier.CTRL) shouldBe false
 
-        // Plain G press -> triggers toast
-        val toastResult = manager.onKey(Key.KEY_G, GLFW.GLFW_PRESS, 0)
-        toastResult shouldBe EventResult.CONSUMED
+        // Unbound key press (e.g. G) passes through without toast or interception
+        val unboundResult = bridge.onKey(Key.KEY_G, GLFW.GLFW_PRESS, 0)
+        unboundResult shouldBe EventResult.PASS
     }
 })
