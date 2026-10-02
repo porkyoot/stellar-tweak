@@ -14,13 +14,15 @@ class ColumnLayout(
     comparators: List<Comparator<SlotInfo>>,
 ) : AbstractDepthLayout(comparators) {
     override fun fitsLayout(groups: List<Group>, availableSlots: List<SlotInfo>, padding: Int): Boolean {
+        if (groups.isEmpty()) return true
         val colHeight = getColHeight(availableSlots)
-        val totalSpacesRequired = groups.sumOf { it.size }
-        val breaks = groups.size - 1
-        val breakSpace = colHeight - 1 + padding * colHeight
-        val worstCaseSize = totalSpacesRequired + breaks * breakSpace
+        val totalColumns = getTotalColumns(availableSlots)
 
-        return worstCaseSize <= availableSlots.size
+        val columnsForGroups = groups.sumOf { (it.size + colHeight - 1) / colHeight }
+        val paddingColumns = (groups.size - 1) * padding
+        val totalColumnsRequired = columnsForGroups + paddingColumns
+
+        return totalColumnsRequired <= totalColumns
     }
 
     override fun emitGroups(groups: List<Group>, availableSlots: List<SlotInfo>, padding: Int): List<SlotInfo> {
@@ -98,11 +100,14 @@ class ColumnLayout(
         for (idx in colMajor) {
             if (slots[idx].x == firstX) {
                 height++
-            } else {
-                break
             }
         }
         return maxOf(1, height)
+    }
+
+    private fun getTotalColumns(slots: List<SlotInfo>): Int {
+        if (slots.isEmpty()) return 1
+        return slots.map { it.x }.distinct().size.coerceAtLeast(1)
     }
 
     private fun buildColMajorIndices(slots: List<SlotInfo>): List<Int> {

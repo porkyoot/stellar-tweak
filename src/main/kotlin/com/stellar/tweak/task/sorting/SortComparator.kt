@@ -18,15 +18,15 @@ enum class SortComparator(
     val comparator: Comparator<SlotInfo>,
     val groupingComparator: Comparator<SlotInfo>,
 ) {
-    CATEGORY("Category", SlotComparators.CREATIVE_MENU, SlotComparators.CREATIVE_MENU),
+    CATEGORY("Category", SlotComparators.CREATIVE_MENU, SlotComparators.CREATIVE_CATEGORY),
     MOD("Mod", SlotComparators.MOD, SlotComparators.MOD),
     MATERIAL("Material", SlotComparators.MATERIAL, SlotComparators.MATERIAL),
     TAG("Tag", SlotComparators.TAG, SlotComparators.TAG),
     COLOR("Color", SlotComparators.COLOR, SlotComparators.COLOR_GROUPING),
     RARITY("Rarity", SlotComparators.RARITY_DESC, SlotComparators.RARITY_DESC),
     NAME("Name", SlotComparators.NAME, SlotComparators.LETTER),
-    ID("Registry ID", SlotComparators.ID, SlotComparators.ID),
-    AMOUNT("Amount", SlotComparators.AMOUNT_DESC, SlotComparators.AMOUNT_DESC),
+    ID("Registry ID", SlotComparators.ID, SlotComparators.NOOP),
+    AMOUNT("Amount", SlotComparators.AMOUNT_DESC, SlotComparators.NOOP),
     ;
 
     companion object {
@@ -60,12 +60,43 @@ enum class SortComparator(
         }
 
         /**
-         * Builds the list of grouping comparators used for depth-matching layout algorithms.
+         * Builds the list of coarse grouping comparators used for spatial layout partitions.
+         *
+         * Excludes fine-grained item identity comparators (ID, AMOUNT) so items belonging to the same
+         * category or material cluster together into columns or rows rather than each occupying a single slot.
          */
         fun buildGroupingComparators(order: List<SortComparator>): List<Comparator<SlotInfo>> {
-            val list = order.map { it.groupingComparator }
-            return list.ifEmpty { DEFAULT_ORDER.map { it.groupingComparator } }
+            val isNamePrimary = order.firstOrNull() == NAME
+            val groupingList = mutableListOf<Comparator<SlotInfo>>()
+
+            for (comp in order) {
+                val resolved = resolveGroupingComparator(comp, isNamePrimary && groupingList.isEmpty())
+                if (resolved != null) {
+                    groupingList.add(resolved)
+                }
+            }
+
+            return groupingList.ifEmpty {
+                listOf(
+                    SlotComparators.CREATIVE_CATEGORY,
+                    SlotComparators.TAG,
+                    SlotComparators.MATERIAL,
+                    SlotComparators.MOD,
+                )
+            }
         }
+
+        private fun resolveGroupingComparator(comp: SortComparator, allowNameLetter: Boolean): Comparator<SlotInfo>? =
+            when (comp) {
+                CATEGORY -> SlotComparators.CREATIVE_CATEGORY
+                TAG -> SlotComparators.TAG
+                MATERIAL -> SlotComparators.MATERIAL
+                MOD -> SlotComparators.MOD
+                COLOR -> SlotComparators.COLOR_GROUPING
+                RARITY -> SlotComparators.RARITY_DESC
+                NAME -> if (allowNameLetter) SlotComparators.LETTER else null
+                ID, AMOUNT -> null
+            }
     }
 }
 
@@ -88,8 +119,16 @@ internal object SlotComparators {
         "_leaves", "_sapling", "_hanging_sign", "_sign", "_wall",
     )
 
+    const val CREATIVE_TAB_STRIDE = 10_000
+
     val CREATIVE_MENU: Comparator<SlotInfo> =
         Comparator.comparingInt { it.creativeOrder }
+
+    val CREATIVE_CATEGORY: Comparator<SlotInfo> =
+        Comparator.comparingInt { it.creativeOrder / CREATIVE_TAB_STRIDE }
+
+    val NOOP: Comparator<SlotInfo> =
+        Comparator { _, _ -> 0 }
 
     val MOD: Comparator<SlotInfo> =
         Comparator.comparing { it.itemId.substringBefore(':', missingDelimiterValue = "minecraft") }

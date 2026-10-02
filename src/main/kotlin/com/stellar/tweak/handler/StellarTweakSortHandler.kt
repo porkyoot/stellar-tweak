@@ -24,6 +24,7 @@ import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.Container
 import net.minecraft.world.inventory.Slot
+import net.minecraft.world.item.ItemStack
 
 /**
  * Controller orchestrating inventory sorting requests triggered via keybinds or interactions.
@@ -136,24 +137,16 @@ object StellarTweakSortHandler {
     ): InventorySnapshot {
         val slotInfos = containerSlots.map { slot ->
             val stack = slot.item
-            val itemId = if (stack.isEmpty) "" else BuiltInRegistries.ITEM.getKey(stack.item).toString()
-            SlotInfo(
-                index = slot.index,
-                itemId = itemId,
-                count = stack.count,
-                isLocked = false,
-                x = slot.x,
-                y = slot.y,
-            )
+            if (stack.isEmpty) {
+                SlotInfo.empty(slot.index).copy(x = slot.x, y = slot.y)
+            } else {
+                createSlotInfo(slot.index, stack, x = slot.x, y = slot.y)
+            }
         }
 
         val carried = player.containerMenu.carried
         val cursorSlot = if (!carried.isEmpty) {
-            SlotInfo(
-                index = -1,
-                itemId = BuiltInRegistries.ITEM.getKey(carried.item).toString(),
-                count = carried.count,
-            )
+            createSlotInfo(-1, carried)
         } else {
             null
         }
@@ -162,6 +155,30 @@ object StellarTweakSortHandler {
             containerId = screen.menu.containerId,
             slots = slotInfos,
             carried = cursorSlot,
+        )
+    }
+
+    private fun createSlotInfo(
+        index: Int,
+        stack: ItemStack,
+        isLocked: Boolean = false,
+        x: Int = 0,
+        y: Int = 0,
+    ): SlotInfo {
+        val itemId = BuiltInRegistries.ITEM.getKey(stack.item).toString()
+        val tags = stack.tags().map { it.location().toString() }.toList()
+        return SlotInfo(
+            index = index,
+            itemId = itemId,
+            count = stack.count,
+            isLocked = isLocked,
+            maxStackSize = stack.maxStackSize,
+            customName = stack.hoverName.string,
+            rarity = stack.rarity.ordinal,
+            tags = tags,
+            creativeOrder = CreativeOrderRegistry.getCreativeOrder(stack.item),
+            x = x,
+            y = y,
         )
     }
 

@@ -87,4 +87,33 @@ class SortingLayoutSpec : FunSpec({
         // Next in Column 1 -> index 3
         placed[3].itemId shouldBe "minecraft:iron_axe"
     }
+
+    test("ColumnLayout inserts padding columns between distinct material groups when capacity allows") {
+        val groupingComps = listOf(SlotComparators.MATERIAL)
+        val layout = ColumnLayout(groupingComps)
+        val availableSlots = createStandardGrid(rows = 3, cols = 3) // 3 columns (padding = 1)
+
+        val goldPick = SlotInfo(index = 0, itemId = "minecraft:gold_pickaxe", count = 1)
+        val ironSword = SlotInfo(index = 1, itemId = "minecraft:iron_sword", count = 1)
+        val ironAxe = SlotInfo(index = 2, itemId = "minecraft:iron_axe", count = 1)
+
+        val placed = layout.layout(listOf(goldPick, ironSword, ironAxe), availableSlots)
+
+        placed.size shouldBe 9
+
+        // In 3x3 grid:
+        // Col 0: 0 (row 0), 3 (row 1), 6 (row 2)
+        // Col 1: 1 (row 0), 4 (row 1), 7 (row 2) -> padding spacer!
+        // Col 2: 2 (row 0), 5 (row 1), 8 (row 2)
+        placed[0].itemId shouldBe "minecraft:gold_pickaxe"
+
+        // Column 1 is empty padding spacer
+        placed[1].isEmpty shouldBe true
+        placed[4].isEmpty shouldBe true
+        placed[7].isEmpty shouldBe true
+
+        // Group 2 (iron) in Column 2 -> index 2 (row 0) and index 5 (row 1)
+        placed[2].itemId shouldBe "minecraft:iron_sword"
+        placed[5].itemId shouldBe "minecraft:iron_axe"
+    }
 })
