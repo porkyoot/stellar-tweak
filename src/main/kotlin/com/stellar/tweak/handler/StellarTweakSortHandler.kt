@@ -38,7 +38,7 @@ object StellarTweakSortHandler {
             requestsPerSecond = StellarTweakConfig.DEFAULT_CPS.toDouble(),
             burstSize = StellarTweakConfig.DEFAULT_BURST_CAPACITY.toDouble(),
         ),
-        maxActionsPerTick = 4,
+        maxActionsPerTick = StellarTweakConfig.MAX_CPS,
     )
 
     val taskEngine: TaskEngine = TaskEngine(dispatcher, scope)

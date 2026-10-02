@@ -27,8 +27,8 @@ class StellarTweakConfig : ReflectiveConfig() {
 
     companion object {
         const val DEFAULT_CPS: Int = 10
-        const val MAX_CPS: Int = 20
+        const val MAX_CPS: Int = 500
         const val DEFAULT_BURST_CAPACITY: Int = 5
-        const val MAX_BURST_CAPACITY: Int = 50
+        const val MAX_BURST_CAPACITY: Int = 500
     }
 }

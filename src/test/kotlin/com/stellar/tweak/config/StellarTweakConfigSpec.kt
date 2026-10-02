@@ -28,8 +28,9 @@ class StellarTweakConfigSpec : FunSpec({
         config.sortLayout.setValue("COLUMN", true)
         config.sortLayout.value() shouldBe "COLUMN"
 
-        config.clickSpeedCps.setValue(15, true)
-        config.clickSpeedCps.value() shouldBe 15
+        config.clickSpeedCps.setValue(500, true)
+        config.clickSpeedCps.value() shouldBe 500
+        StellarTweakConfig.MAX_CPS shouldBe 500
 
         config.burstCapacity.setValue(10, true)
         config.burstCapacity.value() shouldBe 10
