@@ -4,6 +4,7 @@ import com.stellar.tweak.handler.StellarTweakSortHandler
 import com.stellar.tweak.input.StellarTweakInputBridge
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.input.KeyEvent
 import net.minecraft.world.inventory.Slot
 import org.spongepowered.asm.mixin.Mixin
 import org.spongepowered.asm.mixin.Shadow
@@ -19,15 +20,10 @@ abstract class AbstractContainerScreenMixin {
     @Shadow
     protected var hoveredSlot: Slot? = null
 
-    @Suppress("UnusedPrivateMember", "UnusedParameter")
+    @Suppress("UnusedPrivateMember")
     @Inject(method = ["keyPressed"], at = [At("HEAD")], cancellable = true)
-    private fun stellarTweakOnKeyPressed(
-        keyCode: Int,
-        scanCode: Int,
-        modifiers: Int,
-        cir: CallbackInfoReturnable<Boolean>,
-    ) {
-        if (StellarTweakInputBridge.isSortKey(keyCode, scanCode)) {
+    private fun stellarTweakOnKeyPressed(event: KeyEvent, cir: CallbackInfoReturnable<Boolean>) {
+        if (StellarTweakInputBridge.isSortKey(event)) {
             val screen = this as Any as? AbstractContainerScreen<*> ?: return
             StellarTweakSortHandler.handleSort(Minecraft.getInstance(), hoveredSlot, screen)
             cir.setReturnValue(true)

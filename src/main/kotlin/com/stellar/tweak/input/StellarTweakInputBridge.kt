@@ -11,6 +11,7 @@ import com.stellar.tweak.config.StellarTweakConfig
 import com.stellar.tweak.mixin.KeyMappingAccessor
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
+import net.minecraft.client.input.KeyEvent
 import org.lwjgl.glfw.GLFW
 
 /**
@@ -29,8 +30,10 @@ object StellarTweakInputBridge {
         },
     )
 
+    fun isSortKey(event: KeyEvent): Boolean = KeyMappingRegistry.matches(sortKeyMapping, event)
+
     @Suppress("UnusedParameter")
-    fun isSortKey(keyCode: Int, scanCode: Int): Boolean {
+    fun isSortKey(keyCode: Int, scanCode: Int = 0): Boolean {
         return KeyMappingRegistry.matches(sortKeyMapping, keyCode)
     }
 
