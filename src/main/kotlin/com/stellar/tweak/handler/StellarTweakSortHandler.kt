@@ -10,6 +10,7 @@ import com.stellar.tweak.task.SlotInfo
 import com.stellar.tweak.task.SmartSortStrategy
 import com.stellar.tweak.task.TaskEngine
 import com.stellar.tweak.task.TaskIntent
+import com.stellar.tweak.task.TaskState
 import com.stellar.tweak.task.sorting.SortComparator
 import com.stellar.tweak.task.sorting.SortConfiguration
 import com.stellar.tweak.task.sorting.SortLayout
@@ -19,13 +20,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
+import net.minecraft.client.player.LocalPlayer
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.Container
-import net.minecraft.world.InteractionHand
-import net.minecraft.world.entity.player.Player
 import net.minecraft.world.inventory.Slot
-import net.minecraft.world.phys.BlockHitResult
-import net.minecraft.world.phys.HitResult
 
 /**
  * Controller orchestrating inventory sorting requests triggered via keybinds or interactions.
@@ -43,14 +41,29 @@ object StellarTweakSortHandler {
 
     val taskEngine: TaskEngine = TaskEngine(dispatcher, scope)
 
+    init {
+        scope.launch {
+            taskEngine.state.collect { state ->
+                if (state is TaskState.Idle && SilentSortCoordinator.isSilentSortActive()) {
+                    val client = Minecraft.getInstance()
+                    client.execute {
+                        client.player?.let { SilentSortCoordinator.closeSilentContainer(it) }
+                    }
+                }
+            }
+        }
+    }
+
     /**
-     * Ticks the action execution loop at the client TPS rate.
+     * Ticks the action execution loop at the client TPS rate and monitors silent sort timeouts.
      */
     fun onTick(client: Minecraft) {
-        if (client.player != null) {
+        val player = client.player
+        if (player != null) {
             scope.launch {
                 dispatcher.tick()
             }
+            SilentSortCoordinator.checkSilentSortTimeout(player)
         }
     }
 
@@ -67,12 +80,12 @@ object StellarTweakSortHandler {
         if (screen != null) {
             handleScreenSort(player, screen, hoveredSlot, config)
         } else {
-            handleWorldRemoteSort(client, config)
+            SilentSortCoordinator.handleWorldRemoteSort(client, config)
         }
     }
 
-    private fun handleScreenSort(
-        player: Player,
+    fun handleScreenSort(
+        player: LocalPlayer,
         screen: AbstractContainerScreen<*>,
         hoveredSlot: Slot?,
         config: StellarTweakConfig,
@@ -95,12 +108,17 @@ object StellarTweakSortHandler {
                 if (config.clickSpeedCps.value() <= 0) {
                     dispatcher.tick()
                 }
+            } else if (SilentSortCoordinator.isSilentSortActive()) {
+                val client = Minecraft.getInstance()
+                client.execute {
+                    client.player?.let { SilentSortCoordinator.closeSilentContainer(it) }
+                }
             }
         }
     }
 
-    private fun resolveTargetContainer(
-        player: Player,
+    fun resolveTargetContainer(
+        player: LocalPlayer,
         screen: AbstractContainerScreen<*>,
         hoveredSlot: Slot?,
     ): Container {
@@ -112,7 +130,7 @@ object StellarTweakSortHandler {
     }
 
     private fun buildSnapshot(
-        player: Player,
+        player: LocalPlayer,
         screen: AbstractContainerScreen<*>,
         containerSlots: List<Slot>,
     ): InventorySnapshot {
@@ -145,17 +163,6 @@ object StellarTweakSortHandler {
             slots = slotInfos,
             carried = cursorSlot,
         )
-    }
-
-    private fun handleWorldRemoteSort(client: Minecraft, config: StellarTweakConfig) {
-        if (!config.allowRemoteSort.value()) return
-        val hit = client.hitResult ?: return
-        val player = client.player ?: return
-
-        if (hit.type == HitResult.Type.BLOCK && hit is BlockHitResult) {
-            client.gameMode?.useItemOn(player, InteractionHand.MAIN_HAND, hit)
-            player.swing(InteractionHand.MAIN_HAND)
-        }
     }
 
     private fun updateRateLimiter(config: StellarTweakConfig) {
