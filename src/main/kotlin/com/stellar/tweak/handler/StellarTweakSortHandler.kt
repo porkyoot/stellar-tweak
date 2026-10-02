@@ -91,6 +91,10 @@ object StellarTweakSortHandler {
                 taskEngine.processIntent(TaskIntent.Start)
                 taskEngine.processIntent(TaskIntent.SnapshotComplete)
                 taskEngine.processIntent(TaskIntent.PlanCalculated(actions))
+
+                if (config.clickSpeedCps.value() <= 0) {
+                    dispatcher.tick()
+                }
             }
         }
     }
@@ -120,6 +124,8 @@ object StellarTweakSortHandler {
                 itemId = itemId,
                 count = stack.count,
                 isLocked = false,
+                x = slot.x,
+                y = slot.y,
             )
         }
 

@@ -53,11 +53,18 @@ class TaskEngine(
         }
     }
 
+    private val completionJob = scope.launch {
+        dispatcher.completions.collect {
+            processIntent(TaskIntent.ActionCompleted)
+        }
+    }
+
     /**
      * Stops the background failure flow observer and cleans up coroutine jobs.
      */
     fun stop() {
         collectorJob.cancel()
+        completionJob.cancel()
     }
 
     override fun close() {
@@ -87,9 +94,17 @@ class TaskEngine(
     }
 
     private suspend fun handleStart() {
-        if (_state.value is TaskState.Idle || _state.value is TaskState.Replanning) {
-            _state.value = TaskState.Snapshotting
-            onSnapshot?.invoke()
+        when (_state.value) {
+            is TaskState.Idle, is TaskState.Replanning -> {
+                _state.value = TaskState.Snapshotting
+                onSnapshot?.invoke()
+            }
+            is TaskState.Executing -> {
+                dispatcher.clearQueue { it.priority == ActionPriority.LOW }
+                _state.value = TaskState.Snapshotting
+                onSnapshot?.invoke()
+            }
+            else -> Unit
         }
     }
 
