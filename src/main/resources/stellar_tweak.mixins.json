@@ -3,8 +3,10 @@
   "package": "com.stellar.tweak.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "AbstractContainerScreenMixin",
     "KeyboardHandlerMixin",
     "KeyMappingAccessor",
+    "MinecraftTickMixin",
     "MouseHandlerMixin"
   ],
   "injectors": {

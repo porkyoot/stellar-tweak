@@ -1,15 +1,30 @@
 package com.stellar.tweak.action
 
+import com.stellar.core.action.ActionContext
 import com.stellar.core.action.ActionDispatcher
+import com.stellar.core.action.ActionPriority
+import com.stellar.core.action.ActionResult
+import com.stellar.core.action.ModAction
 import com.stellar.core.ratelimit.TokenBucket
 import com.stellar.tweak.task.InventoryClickAction
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 
+private class TestCriticalAction : ModAction {
+    override val priority: ActionPriority = ActionPriority.CRITICAL
+    var executed: Boolean = false
+        private set
+
+    override suspend fun execute(context: ActionContext): ActionResult {
+        executed = true
+        return ActionResult.Success
+    }
+}
+
 class RealTimePreemptionSpec : FunSpec({
 
-    test("EmergencyMLGAction immediately preempts queued InventoryClickActions and bypasses empty TokenBucket") {
+    test("Critical action immediately preempts queued InventoryClickActions and bypasses empty TokenBucket") {
         runTest {
             val mockNanos = 0L
             // Rate limiter with capacity 5 tokens and 0 refill per second for manual control
@@ -48,18 +63,18 @@ class RealTimePreemptionSpec : FunSpec({
             dispatcher.tick()
             dispatcher.pendingCount shouldBe 45
 
-            // 3. Simulate a sudden game event by enqueuing the EmergencyMLGAction (CRITICAL)
-            val mlgAction = EmergencyMLGAction()
-            mlgAction.executed shouldBe false
-            dispatcher.enqueue(mlgAction)
+            // 3. Simulate a sudden game event by enqueuing the critical action (CRITICAL)
+            val criticalAction = TestCriticalAction()
+            criticalAction.executed shouldBe false
+            dispatcher.enqueue(criticalAction)
             dispatcher.pendingCount shouldBe 46
 
-            // 4. Call dispatcher.tick() again. Assert that EmergencyMLGAction executes immediately,
+            // 4. Call dispatcher.tick() again. Assert that critical action executes immediately,
             // completely bypassing the token bucket, and effectively overtaking the ongoing inventory sort.
             dispatcher.tick()
 
-            // EmergencyMLGAction executed immediately!
-            mlgAction.executed shouldBe true
+            // Critical action executed immediately!
+            criticalAction.executed shouldBe true
 
             // The remaining 45 LOW-priority inventory clicks remain safely buffered in the queue
             dispatcher.pendingCount shouldBe 45

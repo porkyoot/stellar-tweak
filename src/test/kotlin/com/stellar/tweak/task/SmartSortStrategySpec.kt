@@ -45,17 +45,31 @@ class SmartSortStrategySpec : FunSpec({
         val strategy = SmartSortStrategy()
         val slots = listOf(
             SlotInfo(index = 0, itemId = "minecraft:shield", count = 1, isLocked = true),
-            SlotInfo(index = 1, itemId = "minecraft:cobblestone", count = 64, isLocked = false),
-            SlotInfo(index = 2, itemId = "minecraft:dirt", count = 32, isLocked = false),
+            SlotInfo(index = 1, itemId = "minecraft:dirt", count = 32, isLocked = false),
+            SlotInfo(index = 2, itemId = "minecraft:cobblestone", count = 64, isLocked = false),
         )
         val snapshot = InventorySnapshot(containerId = 42, slots = slots)
 
         val plan = strategy.calculatePlan(snapshot)
-        plan.shouldBeEmpty()
+        // All planned actions are LOW priority and locked slot (index 0) is never clicked
+        plan.forEach { action ->
+            action.priority shouldBe ActionPriority.LOW
+            if (action is InventoryClickAction) {
+                (action.slotId != 0) shouldBe true
+            }
+        }
 
         // Pure calculation produces identical result for identical snapshot
         val pureResult1 = strategy.computePlanPure(snapshot)
         val pureResult2 = strategy.computePlanPure(snapshot)
         pureResult1 shouldBe pureResult2
+
+        // An already sorted snapshot returns an empty plan
+        val sortedTarget = strategy.computeTargetState(snapshot)
+        val sortedSlots = slots.map { slot ->
+            sortedTarget.slotTargets[slot.index] ?: slot
+        }
+        val alreadySortedSnapshot = InventorySnapshot(containerId = 42, slots = sortedSlots)
+        strategy.calculatePlan(alreadySortedSnapshot).shouldBeEmpty()
     }
 })

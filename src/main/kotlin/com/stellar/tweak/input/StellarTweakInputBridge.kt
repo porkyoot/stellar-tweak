@@ -5,21 +5,34 @@ import com.stellar.core.input.EventResult
 import com.stellar.core.input.GameAction
 import com.stellar.core.input.GameActionKeyResolver
 import com.stellar.core.input.InputManager
+import com.stellar.core.input.KeyMappingRegistry
 import com.stellar.tweak.StellarTweakMod
 import com.stellar.tweak.config.StellarTweakConfig
 import com.stellar.tweak.mixin.KeyMappingAccessor
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
+import org.lwjgl.glfw.GLFW
 
 /**
  * Client-side input bridge connecting Minecraft raw input events to the Stellar InputManager.
  */
 object StellarTweakInputBridge {
+    val sortKeyMapping: KeyMapping = KeyMappingRegistry.register(
+        name = "key.stellar_tweak.sort",
+        keyCode = GLFW.GLFW_KEY_R,
+        category = KeyMappingRegistry.CATEGORY_STELLAR,
+    )
+
     val inputManager: InputManager = InputManager(
         screenContextProvider = {
             runCatching { Minecraft.getInstance().gui.screen() != null }.getOrDefault(false)
         },
     )
+
+    @Suppress("UnusedParameter")
+    fun isSortKey(keyCode: Int, scanCode: Int): Boolean {
+        return KeyMappingRegistry.matches(sortKeyMapping, keyCode)
+    }
 
     fun initialize() {
         ConfigManager.get<StellarTweakConfig>(StellarTweakMod.MOD_ID, "main")

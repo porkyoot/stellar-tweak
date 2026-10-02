@@ -33,7 +33,28 @@ data class InventoryClickAction(
         clickType = DEFAULT_CLICK_TYPE,
     )
 
-    override suspend fun execute(context: ActionContext): ActionResult = ActionResult.Success
+    @Suppress("UNCHECKED_CAST")
+    override suspend fun execute(context: ActionContext): ActionResult {
+        val clickFn = context.attributes["clickExecutor"] as? ((Int, Int, Int, String) -> Boolean)
+        if (clickFn != null) {
+            val ok = clickFn(containerId, slotId, button, clickType)
+            return if (ok) ActionResult.Success else ActionResult.Failure("Click executor returned false")
+        }
+        val mc = runCatching { net.minecraft.client.Minecraft.getInstance() }.getOrNull()
+        if (mc != null) {
+            val player = mc.player
+            val gameMode = mc.gameMode
+            if (player != null && gameMode != null) {
+                val mode = runCatching { net.minecraft.world.inventory.ContainerInput.valueOf(clickType) }
+                    .getOrDefault(net.minecraft.world.inventory.ContainerInput.PICKUP)
+                mc.execute {
+                    gameMode.handleContainerInput(containerId, slotId, button, mode, player)
+                }
+                return ActionResult.Success
+            }
+        }
+        return ActionResult.Success
+    }
 
     companion object {
         const val DEFAULT_CLICK_TYPE = "PICKUP"

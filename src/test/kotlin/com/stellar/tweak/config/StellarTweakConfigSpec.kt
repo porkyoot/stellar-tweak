@@ -19,16 +19,23 @@ class StellarTweakConfigSpec : FunSpec({
         val testId = "test_${System.nanoTime()}"
         val config = ConfigManager.register("stellar_tweak", testId, StellarTweakConfig::class.java)
         config shouldNotBe null
-        config.enableToast.value() shouldBe true
-        config.toastKey.value() shouldBe Key.KEY_G
-        config.toastTitle.value() shouldBe "Stellar Tweak"
-        config.toastMessage.value() shouldBe "Config & Input Test Triggered!"
+        config.sortLayout.value() shouldBe "ROW"
+        config.sortComparatorOrder.value() shouldBe "CATEGORY,TAG,MATERIAL,MOD,COLOR,RARITY,NAME,ID,AMOUNT"
+        config.clickSpeedCps.value() shouldBe 10
+        config.burstCapacity.value() shouldBe 5
+        config.allowRemoteSort.value() shouldBe true
 
-        config.enableToast.setValue(false, true)
-        config.enableToast.value() shouldBe false
+        config.sortLayout.setValue("COLUMN", true)
+        config.sortLayout.value() shouldBe "COLUMN"
 
-        config.toastKey.setValue(Key.KEY_H, true)
-        config.toastKey.value() shouldBe Key.KEY_H
+        config.clickSpeedCps.setValue(15, true)
+        config.clickSpeedCps.value() shouldBe 15
+
+        config.burstCapacity.setValue(10, true)
+        config.burstCapacity.value() shouldBe 10
+
+        config.allowRemoteSort.setValue(false, true)
+        config.allowRemoteSort.value() shouldBe false
     }
 
     test("StellarTweakInputBridge passes unhandled keys and handles registered feature bindings") {
